@@ -126,7 +126,7 @@ label.f{display:block;font-size:.85rem;color:var(--muted);margin:8px 0 3px}
 .hm-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px}.hm-card h3{margin:0 0 10px;font-size:1rem}
 .hm-bar{display:grid;grid-template-columns:130px 1fr 36px;gap:8px;align-items:center;margin:6px 0;font-size:.9rem}.hm-bar i{display:block;height:12px;border-radius:6px;background:var(--border);overflow:hidden}.hm-bar i u{display:block;height:100%;border-radius:6px}
 .hm-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.hm-slots div{border:1px dashed var(--border);border-radius:10px;padding:10px 12px;font-size:.9rem;cursor:pointer}.hm-slots div.sel{border:2px solid #2F6FD0;background:rgba(47,111,208,.08)}
-.authgate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}.authgate[hidden]{display:none}.authgate>div{max-width:420px;text-align:center;border:1px solid var(--border);border-radius:14px;padding:28px 24px}
+.authgate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}.authgate[hidden]{display:none}body.nonadmin [data-fcfg],body.nonadmin [data-fdel],body.nonadmin [data-frst],body.nonadmin label[for^=sf],body.nonadmin #btnCfg,body.nonadmin #btnCfg2,body.nonadmin #btnCfg3{display:none!important}body.nonadmin label.pdrop[for^=sf]{pointer-events:none;opacity:.6}.authgate>div{max-width:420px;text-align:center;border:1px solid var(--border);border-radius:14px;padding:28px 24px}
 .adm-t{width:100%;border-collapse:collapse;font-size:.9rem}.adm-t td,.adm-t th{padding:8px 6px;border-bottom:1px solid var(--border);text-align:left}.adm-b{color:#b3261e}
 .tabs{display:flex;gap:6px;max-width:1100px;margin:12px auto 0;padding:0 16px}
 .tabs button{font:inherit;font-weight:600;padding:9px 16px;border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:0;background:var(--bg);color:var(--muted);cursor:pointer}
@@ -1221,16 +1221,17 @@ let storedForms = []; try { storedForms = JSON.parse(localStorage.getItem(FORMS_
 for (let i=0;i<3;i++) forms[i] = storedForms[i] && storedForms[i].items ? storedForms[i] : null;
 function baseForm(cfg){ return { name: BASE_NAME, base: true, items: Core.INSTR.map((x)=>({ g: x.g, text: x.text, ev: x.ev.slice() })), cfg: cfg || undefined }; }
 forms[3] = (storedForms[3] && storedForms[3].items) ? storedForms[3] : baseForm(storedForms[3] && storedForms[3].cfg);
-function saveForms(){ try { localStorage.setItem(FORMS_KEY, JSON.stringify(forms.map((f,i)=> i===3 && f.base ? { cfg: f.cfg } : f))); } catch(e){} }
+function saveForms(){ try { localStorage.setItem(FORMS_KEY, JSON.stringify(forms.map((f,i)=> i===3 && f.base ? { cfg: f.cfg } : f))); } catch(e){} if (window.__cloudSave) window.__cloudSave(); }
 function renderForms(){
   $('#formsBox').innerHTML = forms.map((f,i)=>{
     const inp = '<input type="file" class="slotf" id="sf'+i+'" data-slot="'+i+'" accept=".xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.tsv,.txt,.html,.htm,.docx,.pdf,image/*" multiple hidden>';
-    if (!f) return '<label class="pdrop" for="sf'+i+'"><strong>Slot '+(i+1)+': unggah form supervisi</strong><br><small>Word, Excel (semua jenis), PDF, atau foto · bisa beberapa halaman sekaligus</small>'+inp+'</label>';
+    if (!f) return '<label class="pdrop" for="sf'+i+'"><strong>Slot '+(i+1)+(window.__isAdmin===false?': belum diisi admin':': unggah form supervisi')+'</strong><br><small>Word, Excel (semua jenis), PDF, atau foto · bisa beberapa halaman sekaligus</small>'+inp+'</label>';
     const info = f.items.length+' aspek · '+f.items.reduce((s,a)=>s+a.ev.length,0)+' indikator · '+(f.cfg?'kategori sendiri':'kategori standar umum');
     return '<div class="pi" style="grid-template-columns:minmax(0,1fr) auto"><div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Slot '+(i+1)+': '+Core.esc(f.name)+'</b><small style="color:var(--muted)">'+info+'</small></div><div class="ctl"><button data-ftpl="'+i+'">Unduh template</button><button data-fcfg="'+i+'" title="Atur kategori nilai form ini">⚙</button>'+'<label for="sf'+i+'" style="cursor:pointer;padding:8px 10px">Ganti</label>'+(i===3 ? (f.base ? '' : '<button data-frst="3">Kembalikan bawaan</button>') : '<button class="x" data-fdel="'+i+'" title="Hapus form" aria-label="Hapus form">×</button>')+inp+'</div></div>';
   }).join('');
 }
 async function setSlot(i, files){
+  if (window.__isAdmin === false){ msg('err','Hanya admin yang dapat mengisi slot instrumen.'); return; }
   clearMsgs(); files = [].concat(files); const base = files[0].name.replace(/\.[^.]+$/, '');
   const scan = files.some((f)=>/^image\//.test(f.type) || /\.(pdf|jpe?g|png|webp|bmp|gif)$/i.test(f.name));
   try {
@@ -1276,11 +1277,11 @@ document.addEventListener('change', (e)=>{ const el = e.target; if (el.classList
 document.addEventListener('click', async (e)=>{
   const t = e.target.closest('[data-ftpl]'), d = e.target.closest('[data-fdel]'), g = e.target.closest('[data-fcfg]');
   if (g){ openCfg(g.dataset.fcfg); return; }
-  if (e.target.closest('[data-frst]')){ forms[3] = baseForm(forms[3].cfg); saveForms(); renderForms(); if (state.reports.length) renderAll(); toast('Slot 4 dikembalikan ke instrumen bawaan.'); return; }
+  if (e.target.closest('[data-frst]') && window.__isAdmin !== false){ forms[3] = baseForm(forms[3].cfg); saveForms(); renderForms(); if (state.reports.length) renderAll(); toast('Slot 4 dikembalikan ke instrumen bawaan.'); return; }
   if (t){ if (typeof XLSX==='undefined'){ toast('Pustaka Excel belum termuat.'); return; } const f = forms[+t.dataset.ftpl];
     const wb = workbookFromGrid(Core.makeGrid({ flag:0, items:f.items, cfg:f.cfg }), 'Instrumen');
     await saveFile('Template_'+slug(f.name)+'.xlsx', XLSX.write(wb, { type:'array', bookType:'xlsx' })); }
-  if (d){ forms[+d.dataset.fdel] = null; saveForms(); renderForms(); }
+  if (d && window.__isAdmin !== false){ forms[+d.dataset.fdel] = null; saveForms(); renderForms(); }
 });
 Core.setResolver((asp)=>{ const r = state.reports.find((x)=>x.data.aspects===asp); if (!r) return null; const s = (r.slot >= 0 && forms[r.slot]) ? r.slot : matchForm(asp); return (s >= 0 && forms[s] && forms[s].cfg) || null; });
 renderForms();
@@ -1312,6 +1313,7 @@ function catNote(){
 }
 function cfgOf(t){ return t==='g' ? Core.getConfig() : (forms[+t] && forms[+t].cfg) || Core.getConfig(); }
 function openCfg(t){
+  if (window.__isAdmin === false) return;
   t = (typeof t === 'string' || typeof t === 'number') ? String(t) : 'g';
   $('#cfgTarget').innerHTML = '<option value="g">Semua laporan (standar umum)</option>' + forms.map((f,i)=> f ? '<option value="'+i+'">Form Slot '+(i+1)+': '+Core.esc(f.name)+(f.cfg?' (kategori sendiri)':'')+'</option>' : '').join('');
   $('#cfgTarget').value = t; fillCfg(cfgOf(t)); $('#cfgInherit').hidden = t==='g';
@@ -1334,7 +1336,7 @@ $('#cfgSave').addEventListener('click', ()=>{
   Core.setConfig(c);
   const d = Core.DEFAULT_CFG, isDef = c.sb===d.sb && c.b===d.b && c.c===d.c && c.names.every((n,i)=>n===d.names[i]);
   if (isDef) clearCfg(); else saveCfg(c);
-  catNote(); closeCfg(); syncGab();
+  catNote(); closeCfg(); syncGab(); if (window.__cloudSave) window.__cloudSave();
   if (state.reports.length) renderAll();
   toast('Pengaturan kategori disimpan.');
 });
@@ -1446,6 +1448,18 @@ if (!AUTH_ON && !/ISI_/.test(FIREBASE_CONFIG.apiKey)){ $('#authGate').hidden = f
 if (AUTH_ON){
   firebase.initializeApp(FIREBASE_CONFIG);
   const auth = firebase.auth(), db = firebase.firestore(), TS = firebase.firestore.FieldValue.serverTimestamp;
+  const setAdmin = (v)=>{ window.__isAdmin = v; document.body.classList.toggle('nonadmin', !v); renderForms(); };
+  window.__cloudSave = ()=>{ if (window.__isAdmin !== true) return; db.collection('settings').doc('app').set({ forms: JSON.stringify(forms.map((f,i)=> i===3 && f.base ? { cfg: f.cfg } : f)), cfg: JSON.stringify(Core.getConfig()), updatedAt: TS() }).catch((e)=>toast('Gagal menyimpan pengaturan ke server: ' + (e.message||e))); };
+  async function loadCloud(isAdmin){
+    const s = await db.collection('settings').doc('app').get();
+    if (!s.exists){ if (isAdmin) window.__cloudSave(); return; }
+    const d = s.data(), st = JSON.parse(d.forms || '[]');
+    for (let i=0;i<3;i++) forms[i] = (st[i] && st[i].items) ? st[i] : null;
+    forms[3] = (st[3] && st[3].items) ? st[3] : baseForm(st[3] && st[3].cfg);
+    try { const c = JSON.parse(d.cfg || 'null'); if (c) Core.setConfig(c); } catch(e){}
+    renderForms(); catNote(); renderHome();
+  }
+  setAdmin(false);
   const gate = $('#authGate'), gm = $('#gateMsg'), gl = $('#gateLogin'), go = $('#gateOut'); let meUid = null;
   const showGate = (msg, login, out)=>{ gate.hidden = false; gm.textContent = msg; gl.hidden = !login; go.hidden = !out; };
   showGate('Memeriksa akun…');
@@ -1453,14 +1467,14 @@ if (AUTH_ON){
   gl.addEventListener('click', ()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch((e)=>showGate('Gagal masuk: '+(e.message||e), true)));
   go.addEventListener('click', ()=>auth.signOut()); $('#whoOut').addEventListener('click', (e)=>{ e.preventDefault(); auth.signOut(); });
   auth.onAuthStateChanged(async (u)=>{
-    $('#tabBtnAdmin').hidden = true; $('#whoami').hidden = true; meUid = null;
+    $('#tabBtnAdmin').hidden = true; $('#whoami').hidden = true; meUid = null; setAdmin(false);
     if (!u){ showGate('Masuk dengan akun Google Anda untuk memakai aplikasi. Tidak perlu password.', true); return; }
     try {
       const email = (u.email||'').toLowerCase(), isAdmin = email === ADMIN_EMAIL && u.emailVerified, ref = db.collection('users').doc(u.uid), snap = await ref.get(); let d;
       if (!snap.exists){ d = { email, name: u.displayName||'', photo: u.photoURL||'', role: isAdmin ? 'admin' : 'pengawas', status: 'active', createdAt: TS(), lastLogin: TS() }; await ref.set(d); }
       else { d = snap.data(); await ref.update({ lastLogin: TS(), name: u.displayName||'', photo: u.photoURL||'' }); }
       if (d.status === 'blocked'){ showGate('Akses akun ' + email + ' dinonaktifkan oleh admin.', false, true); return; }
-      meUid = u.uid; gate.hidden = true; $('#whoEmail').textContent = email; $('#whoami').hidden = false; $('#tabBtnAdmin').hidden = !isAdmin;
+      meUid = u.uid; await loadCloud(isAdmin); setAdmin(isAdmin); gate.hidden = true; $('#whoEmail').textContent = email; $('#whoami').hidden = false; $('#tabBtnAdmin').hidden = !isAdmin;
     } catch(e){ showGate('Gagal memeriksa akun: ' + (e.message||e), false, true); }
   });
   $('#tabBtnAdmin').addEventListener('click', ()=>showTab('admin'));
