@@ -126,7 +126,7 @@ label.f{display:block;font-size:.85rem;color:var(--muted);margin:8px 0 3px}
 .hm-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px}.hm-card h3{margin:0 0 10px;font-size:1rem}
 .hm-bar{display:grid;grid-template-columns:130px 1fr 36px;gap:8px;align-items:center;margin:6px 0;font-size:.9rem}.hm-bar i{display:block;height:12px;border-radius:6px;background:var(--border);overflow:hidden}.hm-bar i u{display:block;height:100%;border-radius:6px}
 .hm-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.hm-slots div{border:1px dashed var(--border);border-radius:10px;padding:10px 12px;font-size:.9rem;cursor:pointer}.hm-slots div.sel{border:2px solid #2F6FD0;background:rgba(47,111,208,.08)}
-.authgate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}.authgate>div{max-width:420px;text-align:center;border:1px solid var(--border);border-radius:14px;padding:28px 24px}
+.authgate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}.authgate[hidden]{display:none}.authgate>div{max-width:420px;text-align:center;border:1px solid var(--border);border-radius:14px;padding:28px 24px}
 .adm-t{width:100%;border-collapse:collapse;font-size:.9rem}.adm-t td,.adm-t th{padding:8px 6px;border-bottom:1px solid var(--border);text-align:left}.adm-b{color:#b3261e}
 .tabs{display:flex;gap:6px;max-width:1100px;margin:12px auto 0;padding:0 16px}
 .tabs button{font:inherit;font-weight:600;padding:9px 16px;border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:0;background:var(--bg);color:var(--muted);cursor:pointer}
@@ -1442,12 +1442,14 @@ $('#gabPick').addEventListener('click', async (e)=>{
 const ADMIN_EMAIL = 'buktikerja.makmurnonci@gmail.com';
 const FIREBASE_CONFIG = { apiKey: 'AIzaSyDmmHshJthvB0z5iP3eZuejkDjzxAmzMsI', authDomain: 'generator-supervisi-gabungan.firebaseapp.com', projectId: 'generator-supervisi-gabungan', appId: '1:1083438056471:web:6d77fe9efaeb19a8b70852' };
 const AUTH_ON = !/ISI_/.test(FIREBASE_CONFIG.apiKey) && typeof firebase !== 'undefined';
+if (!AUTH_ON && !/ISI_/.test(FIREBASE_CONFIG.apiKey)){ $('#authGate').hidden = false; $('#gateMsg').textContent = 'Layanan login tidak dapat dimuat. Periksa koneksi internet, lalu muat ulang halaman (Ctrl+Shift+R).'; }
 if (AUTH_ON){
   firebase.initializeApp(FIREBASE_CONFIG);
   const auth = firebase.auth(), db = firebase.firestore(), TS = firebase.firestore.FieldValue.serverTimestamp;
   const gate = $('#authGate'), gm = $('#gateMsg'), gl = $('#gateLogin'), go = $('#gateOut'); let meUid = null;
   const showGate = (msg, login, out)=>{ gate.hidden = false; gm.textContent = msg; gl.hidden = !login; go.hidden = !out; };
   showGate('Memeriksa akun…');
+  setTimeout(()=>{ if (!gate.hidden && gm.textContent === 'Memeriksa akun…') gm.textContent = 'Pemeriksaan akun terlalu lama. Muat ulang halaman (Ctrl+Shift+R) atau periksa koneksi internet.'; }, 8000);
   gl.addEventListener('click', ()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch((e)=>showGate('Gagal masuk: '+(e.message||e), true)));
   go.addEventListener('click', ()=>auth.signOut()); $('#whoOut').addEventListener('click', (e)=>{ e.preventDefault(); auth.signOut(); });
   auth.onAuthStateChanged(async (u)=>{
