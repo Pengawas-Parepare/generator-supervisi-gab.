@@ -129,7 +129,7 @@ label.f{display:block;font-size:.85rem;color:var(--muted);margin:8px 0 3px}
 .tabs{display:flex;gap:6px;max-width:1100px;margin:12px auto 0;padding:0 16px}
 .tabs button{font:inherit;font-weight:600;padding:9px 16px;border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:0;background:var(--bg);color:var(--muted);cursor:pointer}
 .tabs button[aria-selected=true]{background:var(--primary,#1F4E8C);color:#fff;border-color:transparent}
-#gabPick label.gp{display:flex;gap:8px;align-items:center;padding:4px 0}#gabPick .gl{max-height:150px;overflow:auto;margin:6px 0}#gabFrame{width:100%;height:calc(100vh - 150px);min-height:600px;border:1px solid var(--border);border-radius:10px;background:#fff}
+#gabPick label.gp{display:flex;gap:8px;align-items:center;padding:4px 0}#gabPick .gl{max-height:280px;overflow:auto;margin:6px 0}#gabFrame{width:100%;height:calc(100vh - 150px);min-height:600px;border:1px solid var(--border);border-radius:10px;background:#fff}
 </style>
 </head>
 <body>
@@ -1402,13 +1402,18 @@ $('#btnSendGab').addEventListener('click', ()=>showTab('gab'));
 function renderGabPick(){
   const box = $('#gabPick'), named = state.reports.map((r,i)=>({r,i})).filter((x)=>(x.r.edit.guru||'').trim()), skip = state.reports.length - named.length;
   if (!named.length){ box.innerHTML = '<b>Data dari Generator</b><p style="margin:6px 0 0;color:var(--muted)">Belum ada laporan yang nama gurunya terisi. Buat laporan di tab Generator, atau unggah berkas laporan langsung di bawah.</p>'; return; }
-  box.innerHTML = '<b>Data dari Generator</b> <small style="color:var(--muted)">centang laporan yang mau digabung</small><div class="gl">' + named.map((x)=>'<label class="gp"><input type="checkbox" class="gpc" value="'+x.i+'"> <span><b>'+Core.esc(x.r.edit.guru)+'</b> <small style="color:var(--muted)">'+Core.esc([x.r.edit.mapel,x.r.edit.tanggal].filter(Boolean).join(' · '))+'</small></span></label>').join('') + '</div><div class="btnrow" style="margin:0"><button id="gpAll">Pilih semua</button><button id="gpNone">Kosongkan</button><button class="primary" id="gpGo">Gabungkan yang dicentang</button></div>' + (skip ? '<small style="color:var(--muted)">'+skip+' laporan tanpa nama guru tidak ditampilkan.</small>' : '');
+  const grp = {}; named.forEach((x)=>{ const r = x.r, m = (r.slot >= 0 && forms[r.slot]) ? r.slot : matchForm(r.data.aspects), k = m >= 0 ? String(m) : 'x'; (grp[k] = grp[k] || []).push(x); });
+  const keys = Object.keys(grp).sort((a,b)=> (a==='x') - (b==='x') || a - b);
+  const html = keys.map((k)=>{ const t = k === 'x' ? 'Instrumen lainnya' : 'Slot '+(+k+1)+' · '+Core.esc(forms[+k].name);
+    return '<div style="margin:6px 0 8px"><label class="gp" style="font-weight:600"><input type="checkbox" class="gpg" data-g="'+k+'"> '+t+' <small style="color:var(--muted);font-weight:400">('+grp[k].length+' laporan)</small></label>' +
+      grp[k].map((x)=>'<label class="gp" style="margin-left:24px"><input type="checkbox" class="gpc" data-g="'+k+'" value="'+x.i+'"> <span><b>'+Core.esc(x.r.edit.guru)+'</b> <small style="color:var(--muted)">'+Core.esc([x.r.edit.mapel,x.r.edit.tanggal].filter(Boolean).join(' · '))+'</small></span></label>').join('') + '</div>'; }).join('');
+  box.innerHTML = '<b>Data dari Generator</b> <small style="color:var(--muted)">dikelompokkan menurut jenis instrumen · centang laporan yang mau digabung</small><div class="gl">' + html + '</div><div class="btnrow" style="margin:0"><button id="gpAll">Pilih semua</button><button id="gpNone">Kosongkan</button><button class="primary" id="gpGo">Gabungkan yang dicentang</button></div>' + (skip ? '<small style="color:var(--muted)">'+skip+' laporan tanpa nama guru tidak ditampilkan.</small>' : '');
 }
+$('#gabPick').addEventListener('change', (e)=>{ const c = e.target; if (c.classList && c.classList.contains('gpg')) document.querySelectorAll('#gabPick .gpc[data-g="'+c.dataset.g+'"]').forEach((x)=>x.checked = c.checked); });
 $('#gabPick').addEventListener('click', async (e)=>{
   const id = e.target.id; if (!id || id.slice(0,2) !== 'gp') return;
   const cbs = [...document.querySelectorAll('#gabPick .gpc')];
-  if (id === 'gpAll') cbs.forEach((c)=>c.checked = true);
-  if (id === 'gpNone') cbs.forEach((c)=>c.checked = false);
+  if (id === 'gpAll' || id === 'gpNone'){ const on = id === 'gpAll'; cbs.forEach((c)=>c.checked = on); document.querySelectorAll('#gabPick .gpg').forEach((c)=>c.checked = on); }
   if (id !== 'gpGo') return;
   const idx = cbs.filter((c)=>c.checked).map((c)=>+c.value);
   if (!idx.length){ toast('Centang minimal satu laporan.'); return; }
