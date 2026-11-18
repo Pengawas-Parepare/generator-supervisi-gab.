@@ -1453,7 +1453,7 @@ if (AUTH_ON){
   window.__cloudSave = ()=>{ if (window.__isAdmin !== true) return; db.collection('settings').doc('app').set({ forms: JSON.stringify(forms.map((f,i)=> i===3 && f.base ? { cfg: f.cfg } : f)), cfg: JSON.stringify(Core.getConfig()), updatedAt: TS() }).catch((e)=>toast('Gagal menyimpan pengaturan ke server: ' + (e.message||e))); };
   async function loadCloud(isAdmin){
     const s = await db.collection('settings').doc('app').get();
-    if (!s.exists){ if (isAdmin) window.__cloudSave(); return; }
+    if (!s.exists){ if (isAdmin) window.__cloudSave(); else toast('Admin belum menyimpan pengaturan instrumen.'); return; }
     const d = s.data(), st = JSON.parse(d.forms || '[]');
     for (let i=0;i<3;i++) forms[i] = (st[i] && st[i].items) ? st[i] : null;
     forms[3] = (st[3] && st[3].items) ? st[3] : baseForm(st[3] && st[3].cfg);
@@ -1475,7 +1475,7 @@ if (AUTH_ON){
       if (!snap.exists){ d = { email, name: u.displayName||'', photo: u.photoURL||'', role: isAdmin ? 'admin' : 'pengawas', status: 'active', createdAt: TS(), lastLogin: TS() }; await ref.set(d); }
       else { d = snap.data(); await ref.update({ lastLogin: TS(), name: u.displayName||'', photo: u.photoURL||'' }); }
       if (d.status === 'blocked'){ showGate('Akses akun ' + email + ' dinonaktifkan oleh admin.', false, true); return; }
-      meUid = u.uid; await loadCloud(isAdmin); setAdmin(isAdmin); gate.hidden = true; $('#whoEmail').textContent = email; $('#whoami').hidden = false; $('#tabBtnAdmin').hidden = !isAdmin;
+      meUid = u.uid; setAdmin(isAdmin); await loadCloud(isAdmin); gate.hidden = true; $('#whoEmail').textContent = email; $('#whoami').hidden = false; $('#tabBtnAdmin').hidden = !isAdmin;
     } catch(e){ showGate('Gagal memeriksa akun: ' + (e.message||e), false, true); }
   });
   $('#tabBtnAdmin').addEventListener('click', ()=>showTab('admin'));
