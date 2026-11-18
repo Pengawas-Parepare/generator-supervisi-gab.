@@ -1203,7 +1203,7 @@ $('#btnTemplate').addEventListener('click', async ()=>{
 
 document.addEventListener('click', async (e)=>{
   const del = e.target.closest('[data-del]');
-  if (del){ e.stopPropagation(); const i=+del.dataset.del; state.reports.splice(i,1); saveSoon(); if(!state.reports.length){ state.active=-1; $('#work').style.display='none'; } else { state.active=Math.min(state.active, state.reports.length-1); if(i<state.active) state.active--; renderAll(); } return; }
+  if (del){ e.stopPropagation(); const i=+del.dataset.del; state.reports.splice(i,1); clearMsgs(); saveSoon(); if(!state.reports.length){ state.active=-1; $('#work').style.display='none'; } else { state.active=Math.min(state.active, state.reports.length-1); if(i<state.active) state.active--; renderAll(); } return; }
   const it = e.target.closest('.ritem'); if (it){ state.active=+it.dataset.i; renderAll(); return; }
   if (e.target.id === 'btnRecap') await downloadRecap();
 });
