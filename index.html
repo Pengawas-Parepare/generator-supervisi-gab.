@@ -1229,6 +1229,7 @@ function renderForms(){
     const info = f.items.length+' aspek · '+f.items.reduce((s,a)=>s+a.ev.length,0)+' indikator · '+(f.cfg?'kategori sendiri':'kategori standar umum');
     return '<div class="pi" style="grid-template-columns:minmax(0,1fr) auto"><div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Slot '+(i+1)+': '+Core.esc(f.name)+'</b><small style="color:var(--muted)">'+info+'</small></div><div class="ctl"><button data-ftpl="'+i+'">Unduh template</button><button data-fcfg="'+i+'" title="Atur kategori nilai form ini">⚙</button>'+'<label for="sf'+i+'" style="cursor:pointer;padding:8px 10px">Ganti</label>'+(i===3 ? (f.base ? '' : '<button data-frst="3">Kembalikan bawaan</button>') : '<button class="x" data-fdel="'+i+'" title="Hapus form" aria-label="Hapus form">×</button>')+inp+'</div></div>';
   }).join('');
+  fillInstr();
 }
 async function setSlot(i, files){
   if (window.__isAdmin === false){ msg('err','Hanya admin yang dapat mengisi slot instrumen.'); return; }
